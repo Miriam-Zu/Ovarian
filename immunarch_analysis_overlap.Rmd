@@ -1,0 +1,86 @@
+---
+title: "overlap"
+output: html_document
+---
+
+```{r warning = FALSE, message=FALSE}
+library(immunarch)
+library(data.table)
+library(gridExtra)
+library(plotly)
+```
+
+Ovarian Cancer TRB
+```{r}
+OC_path <- "Ovarian_project/OC/Blood/TRB/"
+```
+
+```{r cache=TRUE, message=FALSE}
+#### BLOOD
+immdata_ova_trb<-repLoad(OC_path)
+```
+
+Healthy TRB
+```{r}
+H_path <-"Ovarian_project/Healthy/V2_V1/TRB/"
+```
+
+```{r cache=TRUE, message=FALSE}
+#### BLOOD
+immdata_H_trb<-repLoad(H_path)
+```
+
+Combine OC and H
+```{r}
+data <- c(immdata_ova_trb$data, immdata_H_trb$data)
+```
+
+Before subsampling
+```{r}
+copy <-data
+
+public_b <- repOverlap(copy, .method = "public", .verbose = F, .col = "aa")
+public_b_df = as.data.frame(public_b)
+
+f <- plot_ly(x = colnames(public_b_df), y = rownames(public_b_df), z = as.matrix(public_b_df), 
+             type = "heatmap", 
+             zauto = F, zmin = 0, zmax = 4000)
+
+f <- f %>% layout(title = 'Repertoire Overlap TRB Blood OC and H',
+         xaxis = list(title = 'Sample', tickangle=-90),
+         yaxis = list(title = 'Sample'))
+f
+```
+
+Low TRB clones
+```{r fig.show='asis'}
+clones_trb<-repExplore(data, .method = "clones")
+trb_blood_order = arrange(clones_trb, Clones)
+rownames(trb_blood_order) = c()
+head(trb_blood_order)
+```
+
+Subsample
+Omit 21_H, 49_H
+```{r}
+data[which(names(data) %in% c("21_TRB_H", "49_TRB_H"))] <- NULL
+sub_b = repSample(data, .method = "downsample", .n = 17252)
+```
+
+after subsampling
+```{r}
+copy_data_trb <-sub_b
+
+public_b <- repOverlap(copy_data_trb, .method = "public", .verbose = F, .col = "aa") #%>% vis()
+public_b_df = as.data.frame(public_b)
+
+f_a <- plot_ly(x = colnames(public_b_df), y = rownames(public_b_df), z = as.matrix(public_b_df), 
+               type = "heatmap", 
+               zauto = F, zmin = 0, zmax = 200)
+
+f_a <- f_a %>% layout(title = 'Repertoire Overlap TRB Blood OC and H',
+         xaxis = list(title = 'Sample', tickangle=-90),
+         yaxis = list(title = 'Sample'))
+f_a
+```
+
