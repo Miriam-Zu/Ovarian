@@ -42,11 +42,6 @@ sub = repSample(immdata$data, .method = "downsample", .n = 24840)
 
 
 # Initial data analysis
-
-```{r}
-names(sub)
-```
-
 ```{r}
 sub_h <- sub[grepl("H",names(sub))]
 sub_oc <- sub[grepl("OC",names(sub))]
