@@ -1,0 +1,701 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning = FALSE}
+library("immunarch")
+library("purrr")
+library("stringr")
+library(forcats)
+library(data.table)
+library(ggpubr)
+library(scales)
+library(plotly)
+```
+
+All Samples (H+OC) TRA and TRB 
+```{r}
+#### BLOOD
+immdata<-repLoad("/home/zuckerm1/r_files/All_Samples/num_A_B/")
+
+```
+
+Low clones
+```{r}
+clones<-repExplore(immdata$data, .method = "clones")
+blood_order = arrange(clones, Clones)
+rownames(blood_order) = c()
+head(blood_order)
+```
+
+# Subsample
+1. Omit 21_H, 49_H
+```{r}
+immdata$data[which(names(immdata$data) %in% c("21_A_B_H", "49_A_B_H"))] <- NULL
+#immdata$data[which(names(immdata$data) %in% c("H_A_B_21", "H_A_B_49"))] <- NULL
+# this omits 21, 49
+```
+
+2. subsample
+```{r}
+sub = repSample(immdata$data, .method = "downsample", .n = 24840)
+```
+
+------
+# Initial data analysis
+
+```{r}
+names(sub)
+```
+
+```{r}
+sub_h <- sub[grepl("H",names(sub))]
+sub_oc <- sub[grepl("OC",names(sub))]
+```
+
+analysis after subsampling
+sub_h and sub_oc contain both TRA and TRB
+
+0. unique
+1. top
+2. rare
+3. diversity
+    a. gini
+    b. True diversity "div"
+    c. Inverse Simpson index "inv.simp"
+    d. Gini-Simpson index "gini.simp"
+
+
+0. unique
+```{r}
+uniq_h<-repExplore(sub_h, .method = "volume")
+vis(uniq_h)
+uniq_df_h <- data.frame(uniq_h)
+
+plt_uniq_h <- ggplot(uniq_df_h,aes(x=Sample,y=Volume))+
+  geom_bar(stat='identity',position='stack')+
+  labs(title = "Unique clonotypes in Healthy Blood", x = "Sample", y = "Count") + 
+  #theme(axis.text.x = element_text(angle = 90))+
+  theme_bw()+
+  theme(axis.text.x = element_blank(), panel.grid = element_blank())+
+  scale_y_continuous(labels = comma)
+
+plt_uniq_h
+```
+
+```{r}
+uniq_oc<-repExplore(sub_oc, .method = "volume")
+vis(uniq_oc)
+uniq_df_oc <- data.frame(uniq_oc)
+
+plt_uniq_oc <- ggplot(uniq_df_oc,aes(x=Sample,y=Volume))+
+  geom_bar(stat='identity')+
+  labs(title = "Unique clonotypes in OC Blood", x = "Sample", y = "Count") +
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90))+
+  theme(axis.text.x = element_blank(),  panel.grid = element_blank())+
+  scale_y_continuous(labels = comma)
+
+plt_uniq_oc
+```
+
+```{r}
+ggarrange(plt_uniq_h, plt_uniq_oc, 
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2,
+          legend = "bottom",
+          common.legend = T)
+```
+
+t test
+```{r}
+uniq_y_h <- uniq_h$Volume
+mean_uniq_h <- mean(uniq_y_h)
+var_uniq_h <- var(uniq_y_h) 
+
+uniq_y_oc <- uniq_oc$Volume
+mean_uniq_oc <- mean(uniq_y_oc)
+var_uniq_oc <- var(uniq_y_oc) 
+
+var_uniq_h
+var_uniq_oc
+
+t.test(uniq_y_h, uniq_y_oc, var.equal = T) 
+
+# p value = 0.13. not significant difference.
+```
+
+
+1. top
+```{r}
+top_h <- repClonality(sub_h, .method = "top", .head= c(10,100,1000,3000,10000,30000)) #,100000,300000
+top_df <- data.frame(top_h)
+top_n <- mutate(top_df, "[11:100)" = X100 - X10, 
+                  "[101:1000)" = X1000 - X100, 
+                  "[1001:3000)" = X3000 - X1000, 
+                  "[3001:10000)" = X10000 - X3000,
+                  "[10001:30000)" = X30000 - X10000,
+                  #"[30001:1e+05)" = X1e.05 - X30000,
+                  #"[100001:3e+05)" = X3e.05 - X1e.05,
+                  "Patient_ID" = rownames(top_df),
+                  Num = as.numeric(map(str_split(Patient_ID, regex("_"),2),1)),
+                  Patient_ID = fct_reorder(Patient_ID, Num))
+
+top_n1 <- top_n[,c("Patient_ID","X10","[11:100)", "[101:1000)","[1001:3000)","[3001:10000)","[10001:30000)")] #,"[30001:1e+05)", "[100001:3e+05)"
+top_n1 = top_n1 %>% rename( "[1:10)" = "X10")
+
+test <- reshape2::melt(top_n1)
+plt <- ggplot(test,aes(x=Patient_ID,y=value,fill=variable))+
+  geom_bar(stat='identity',position='stack')+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Top clonal proportion Healthy Blood", x = "Sample", y = "Occupied repertoire space") + 
+  guides(fill=guide_legend(title="Clonotype indices"))+
+  scale_fill_brewer(palette = "RdYlBu")
+plt
+```
+
+```{r}
+top_oc <- repClonality(sub_oc, .method = "top", .head= c(10,100,1000,3000,10000,30000)) # ,100000,300000
+top_df_oc <- data.frame(top_oc)
+top_n_oc <- mutate(top_df_oc, "[11:100)" = X100 - X10, 
+                  "[101:1000)" = X1000 - X100, 
+                  "[1001:3000)" = X3000 - X1000, 
+                  "[3001:10000)" = X10000 - X3000,
+                  "[10001:30000)" = X30000 - X10000,
+                  #"[30001:1e+05)" = X1e.05 - X30000,
+                  #"[100001:3e+05)" = X3e.05 - X1e.05,
+                  "Patient_ID" = rownames(top_df_oc),
+                  Num = as.numeric(map(str_split(Patient_ID, regex("_"),2),1)),
+                  Patient_ID = fct_reorder(Patient_ID, Num))
+
+top_n1_oc <- top_n_oc[,c("Patient_ID","X10","[11:100)", "[101:1000)","[1001:3000)","[3001:10000)","[10001:30000)")] # ,"[30001:1e+05)", "[100001:3e+05)"
+top_n1_oc = top_n1_oc %>% rename( "[1:10)" = "X10")
+
+test_oc <- reshape2::melt(top_n1_oc)
+plt_oc <- ggplot(test_oc,aes(x=Patient_ID,y=value,fill=variable))+
+  geom_bar(stat='identity',position='stack')+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Top clonal proportion OC Blood", x = "Sample", y = "Occupied repertoire space") + 
+  guides(fill=guide_legend(title="Clonotype indices"))+
+  scale_fill_brewer(palette = "RdYlBu")
+plt_oc
+```
+
+t test
+```{r}
+top_y_h <- top_n1$`[1:10)`
+mean_top_h <- mean(top_y_h)
+var_top_h <- var(top_y_h) 
+
+top_y_oc <- top_n1_oc$`[1:10)`
+mean_top_oc <- mean(top_y_oc)
+var_top_oc <- var(top_y_oc) 
+
+top_y_h[1:10]
+var_top_h
+top_y_oc[1:10]
+var_top_oc
+
+t.test(top_y_h, top_y_oc, var.equal = TRUE)
+```
+
+
+```{r}
+ggarrange(plt_oc, plt, 
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1,
+          legend = "bottom",
+          common.legend = T)
+```
+```{r}
+ggsave("top")
+```
+
+2. rare
+```{r}
+rare_h <- repClonality(sub_h, .method = "rare") #%>% vis()
+
+rare_df_h <- data.frame(rare_h)
+rare_h_n <- mutate(rare_df_h, "2 - 3" = X3 - X1, 
+                  "4 - 10" = X10 - X3, 
+                  "11 - 30" = X30 - X10, 
+                  "31 - 100" = X100 - X30,
+                  "101 - MAX" = MAX - X100,
+                  "Patient_ID" = rownames(rare_df_h),
+                  Num = as.numeric(map(str_split(Patient_ID, regex("_"),2),1)),
+                  Patient_ID = fct_reorder(Patient_ID, Num))
+rare_h_n1 <- rare_h_n[,c("Patient_ID","X1","2 - 3", "4 - 10", "11 - 30","31 - 100","101 - MAX")]
+rare_h_n1 = rare_h_n1 %>% rename( "1" = "X1")
+test_rare_h <- reshape2::melt(rare_h_n1)
+
+plt_rare_h <- ggplot(test_rare_h,aes(x=Patient_ID,y=value,fill=variable))+
+  geom_bar(stat='identity',position='stack')+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Rare clonal proportion Healthy Blood", x = "Sample", y = "Occupied repertoire space") + 
+  guides(fill=guide_legend(title="Clonotype counts"))+
+  scale_fill_brewer(palette = "RdYlBu")
+plt_rare_h
+```
+
+
+```{r}
+rare_oc <- repClonality(sub_oc, .method = "rare") #%>% vis()
+
+rare_df_oc <- data.frame(rare_oc)
+rare_n_oc <- mutate(rare_df_oc, "2 - 3" = X3 - X1, 
+                  "4 - 10" = X10 - X3, 
+                  "11 - 30" = X30 - X10, 
+                  "31 - 100" = X100 - X30,
+                  "101 - MAX" = MAX - X100,
+                  "Patient_ID" = rownames(rare_df_oc),
+                  Num = as.numeric(map(str_split(Patient_ID, regex("_"),2),1)),
+                  Patient_ID = fct_reorder(Patient_ID, Num))
+rare_n1_oc <- rare_n_oc[,c("Patient_ID","X1","2 - 3", "4 - 10", "11 - 30","31 - 100","101 - MAX")]
+rare_n1_oc = rare_n1_oc %>% rename( "1" = "X1")
+
+test_rare_oc <- reshape2::melt(rare_n1_oc)
+
+plt_rare_oc <- ggplot(test_rare_oc,aes(x=Patient_ID,y=value,fill=variable))+
+  geom_bar(stat='identity',position='stack')+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), legend.position = "none", complete = F, panel.grid = element_blank())+
+  labs(title = "Rare clonal proportion OC Blood", x = "Sample", y = "Occupied repertoire space") + 
+  guides(fill=guide_legend(title="Clonotype counts"))+
+  scale_fill_brewer(palette = "RdYlBu")
+plt_rare_oc
+```
+
+t test
+```{r}
+y_h = rare_h_n1[,2]
+mean_red_h<-mean(y_h)
+var_h <- var(y_h)
+
+y_oc = rare_n1_oc[,2]
+mean_red_oc<-mean(y_oc)
+var_oc <- var(y_oc)
+
+t.test(y_h, y_oc, var.equal = TRUE)
+```
+
+
+```{r}
+ggarrange(plt_rare_oc, plt_rare_h, 
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1,
+          legend = "bottom",
+          common.legend = T)
+```
+
+
+3. diversity- gini
+```{r}
+gini_h <- repDiversity(sub_h, .method = "gini", .verbose = F)
+
+gini_df_h = data.frame(gini_h)
+gini_df_h$sample <- rownames(gini_df_h)
+gini_df_h$Num = as.numeric(map(str_split(gini_df_h$sample, regex("_"),2),1))
+gini_df_h$Patient_ID = fct_reorder(gini_df_h$sample, gini_df_h$Num)
+
+plt_gini_h<- ggplot(gini_df_h, aes(Patient_ID, gini_h)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Gini Diversity Healthy Blood", x = "Sample", y = "gini index")+
+  theme(legend.position = "none")
+
+plt_gini_h
+  
+
+```
+
+```{r}
+gini_oc <- repDiversity(sub_oc, .method = "gini", .verbose = F)
+
+gini_df_oc = data.frame(gini_oc)
+gini_df_oc$sample <- rownames(gini_df_oc)
+gini_df_oc$Num = as.numeric(map(str_split(gini_df_oc$sample, regex("_"),2),1))
+gini_df_oc$Patient_ID = fct_reorder(gini_df_oc$sample, gini_df_oc$Num)
+
+plt_gini_oc<- ggplot(gini_df_oc, aes(Patient_ID, gini_oc)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Gini Diversity OC Blood", x = "Sample", y = "gini index")+
+  theme(legend.position = "none")
+
+plt_gini_oc
+  
+
+```
+
+t test
+```{r}
+y_gini_h = gini_df_h$gini_h
+mean_gini_h<-mean(y_gini_h)
+var_gini_h <- var(y_gini_h)
+
+y_gini_oc = gini_df_oc$gini_oc
+mean_gini_oc<-mean(y_gini_oc)
+var_gini_oc <- var(y_gini_oc)
+
+var_gini_h
+var_gini_oc
+
+t.test(y_gini_h, y_gini_oc, var.equal = TRUE)
+```
+
+```{r}
+ggarrange(plt_gini_oc, plt_gini_h, 
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1)
+```
+
+
+3b. diversity - True diversity "div"
+```{r}
+true_d_h <- repDiversity(sub_h, .method = "div", .verbose = F)
+
+true_d_h$Num = as.numeric(map(str_split(true_d_h$Sample, regex("_"),2),1))
+true_d_h$Patient_ID = fct_reorder(true_d_h$Sample, true_d_h$Num)
+
+plt_trued_h<- ggplot(true_d_h, aes(Patient_ID, Value)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "True Diversity Healthy Blood", x = "Sample", y = "True Diversity")+
+  theme(legend.position = "none")
+
+plt_trued_h
+```
+
+```{r}
+true_d_oc <- repDiversity(sub_oc, .method = "div", .verbose = F)
+
+true_d_oc$Num = as.numeric(map(str_split(true_d_oc$Sample, regex("_"),2),1))
+true_d_oc$Patient_ID = fct_reorder(true_d_oc$Sample, true_d_oc$Num)
+
+plt_trued_oc<- ggplot(true_d_oc, aes(Patient_ID, Value)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "True Diversity OC Blood", x = "Sample", y = "True Diversity")+
+  theme(legend.position = "none")
+
+plt_trued_oc
+
+```
+
+t test
+```{r}
+y_trued_h = true_d_h$Value
+mean_h<-mean(y_trued_h)
+var_h <- var(y_trued_h)
+
+y_trued_oc = true_d_oc$Value
+mean_oc<-mean(y_trued_oc)
+var_oc <- var(y_trued_oc)
+
+var_h
+var_oc
+
+t.test(y_trued_h, y_trued_oc, var.equal = FALSE)
+```
+
+```{r}
+ggarrange(plt_trued_oc, plt_trued_h, 
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1)
+```
+
+3c. diversity - Inverse Simpson index "inv.simp"
+
+```{r}
+inv_h <- repDiversity(sub_h, .method = "inv.simp", .verbose = F)
+
+inv_h$Num = as.numeric(map(str_split(inv_h$Sample, regex("_"),2),1))
+inv_h$Patient_ID = fct_reorder(inv_h$Sample, inv_h$Num)
+
+plt_inv_h<- ggplot(inv_h, aes(Patient_ID, Value)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Inverse Simpson index Diversity Healthy Blood", x = "Sample", y = "Inverse Simpson index")+
+  theme(legend.position = "none")
+
+plt_inv_h
+```
+
+
+```{r}
+inv_oc <- repDiversity(sub_oc, .method = "inv.simp", .verbose = F)
+
+inv_oc$Num = as.numeric(map(str_split(inv_oc$Sample, regex("_"),2),1))
+inv_oc$Patient_ID = fct_reorder(inv_oc$Sample, inv_oc$Num)
+
+plt_inv_oc<- ggplot(inv_oc, aes(Patient_ID, Value)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Inverse Simpson index Diversity OC Blood", x = "Sample", y = "Inverse Simpson index")+
+  theme(legend.position = "none")
+
+plt_inv_oc
+```
+
+t test
+```{r}
+y_h = inv_h$Value
+mean_h<-mean(y_h)
+var_h <- var(y_h)
+
+y_oc = inv_oc$Value
+mean_oc<-mean(y_oc)
+var_oc <- var(y_oc)
+
+var_h
+var_oc
+
+t.test(y_h, y_oc, var.equal = FALSE)
+```
+```{r}
+ggarrange(plt_inv_oc, plt_inv_h, 
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1)
+```
+
+
+3d. diversity - Gini-Simpson index "gini.simp"
+
+```{r}
+simp_h <- repDiversity(sub_h, .method = "gini.simp", .verbose = F)
+
+simp_h$Num = as.numeric(map(str_split(simp_h$Sample, regex("_"),2),1))
+simp_h$Patient_ID = fct_reorder(simp_h$Sample, simp_h$Num)
+
+plt_simp_h<- ggplot(simp_h, aes(Patient_ID, Value)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Gini Simpson index Diversity Healthy Blood", x = "Sample", y = "Gini-Simpson index")+
+  theme(legend.position = "none")
+
+plt_simp_h
+```
+
+
+```{r}
+simp_oc <- repDiversity(sub_oc, .method = "gini.simp", .verbose = F)
+
+simp_oc$Num = as.numeric(map(str_split(simp_oc$Sample, regex("_"),2),1))
+simp_oc$Patient_ID = fct_reorder(simp_oc$Sample, simp_oc$Num)
+
+plt_simp_oc<- ggplot(simp_oc, aes(Patient_ID, Value)) + #, fill = sample
+  geom_col()+
+  theme_bw()+
+  #theme(axis.text.x = element_text(angle = 90), complete = F, panel.grid = element_blank())+
+  theme(axis.text.x = element_blank(), complete = F, panel.grid = element_blank())+
+  labs(title = "Gini Simpson index Diversity OC Blood", x = "Sample", y = "Gini-Simpson index")+
+  theme(legend.position = "none")
+
+plt_simp_oc
+```
+
+
+```{r}
+ggarrange(plt_simp_oc, plt_simp_h, 
+          labels = c("A", "B"),
+          ncol = 2, nrow = 1)
+```
+
+t test
+```{r}
+y_h = simp_h$Value
+mean_h<-mean(y_h)
+var_h <- var(y_h)
+
+y_oc = simp_oc$Value
+mean_oc<-mean(y_oc)
+var_oc <- var(y_oc)
+
+var_h
+var_oc
+
+t.test(y_h, y_oc, var.equal = T)
+```
+
+
+overlap
+```{r}
+data_over<-repLoad("/home/zuckerm1/r_files/All_Samples/A_B/")
+```
+
+1. remove
+```{r}
+data_over$data[which(names(immdata$data) %in% c("H_A_B_21", "H_A_B_49"))] <- NULL
+# this omits 21, 49
+```
+
+2. subsample
+```{r}
+sub_over = repSample(data_over$data, .method = "downsample", .n = 24840)
+```
+
+
+```{r}
+public <- repOverlap(sub_over, .method = "public", .verbose = F, .col = "aa") #%>% vis()
+public_df = as.data.frame(public)
+
+f_a <- plot_ly(x = colnames(public_df), 
+               y = rownames(public_df), 
+               z = as.matrix(public_df), 
+               type = "heatmap", 
+               zauto = F, zmin = 0, zmax = 600) %>%
+  layout(xaxis = list(tickangle=-90))
+
+f_a <- f_a %>% layout(title = 'Repertoire Overlap Blood OC and H',
+         xaxis = list(title = 'Sample'),
+         yaxis = list(title = 'Sample'))
+
+f_a
+```
+
+
+# Create dataframe and perform feature filtering
+------
+generate dataframe: features x observations. 
+proportions of public clonotype sharing
+```{r}
+public_prop <- pubRep(sub, .quant = "prop", .verbose = F, .col = "aa")
+```
+
+
+```{r}
+pub_prop_df = as.data.frame(public_prop)
+pub_prop_df[is.na(pub_prop_df)] = 0
+pub_prop_df_wos <- subset(pub_prop_df, select = -c(Samples) )
+```
+
+transpose dataframe: observations x features
+```{r}
+merged <- pub_prop_df_wos
+merged_t <- setNames(data.frame(t(merged[,-1])), merged[,1])
+
+```
+
+shuffle data set
+```{r}
+set.seed(1234)
+merged_t <- merged_t[sample(1:nrow(merged_t)),]
+data_df <- merged_t
+rownames(data_df)
+```
+
+create vector of labels
+```{r}
+labels <- case_when(
+    endsWith(rownames(data_df), "H") ~ 0,
+    endsWith(rownames(data_df), "OC") ~ 1
+    )
+```
+
+
+```{r}
+head(labels, 20)
+length(labels)
+```
+
+turn data into matrix
+```{r}
+data_m <- data.matrix(merged_t)
+```
+
+split dataset into testing and training
+```{r}
+numTrainSamples <- round(length(labels)*0.75)
+
+
+# training data
+train_data <- data_m[1:numTrainSamples,]
+train_labels <- labels[1:numTrainSamples]
+
+# testing data
+test_data <- data_m[-(1:numTrainSamples),]
+test_labels <- labels[-(1:numTrainSamples)]
+
+```
+
+check how many cases of each class in train data
+```{r}
+negative_cases <- sum(train_labels == FALSE)
+postive_cases <- sum(train_labels == TRUE)
+```
+
+select top 600 features in train
+1. Count how many non zero cells in each column.
+```{r}
+samples_count <- colSums(train_data != 0)
+```
+
+```{r}
+samples_count[1:20]
+samples_count[length(samples_count)]
+str(samples_count)
+```
+
+2. indices of the sorted vector from high to low and keep top 600.
+```{r}
+feature_selection <- order(samples_count, decreasing = T)[1:600]
+```
+
+3. select those indices from train matrix.
+```{r}
+train_fs <- train_data[,feature_selection]
+names <- colnames(train_fs)
+```
+
+in test, select the same 600 features
+```{r}
+test_fs <- test_data [,feature_selection]
+```
+
+from all data (train+test), select the same 600 features
+```{r}
+data<-merged_t[,feature_selection]
+```
+
+export to csv
+```{r}
+write.csv(train_fs,"/home/zuckerm1/r_files/train_fs_600_ab.csv", row.names = T)
+write.csv(test_fs,"/home/zuckerm1/r_files/test_fs_600_ab.csv", row.names = T)
+write.csv(data,"/home/zuckerm1/r_files/data_600_ab.csv", row.names = T)
+```
+
+
+
+
+
+
+
+
+
+
