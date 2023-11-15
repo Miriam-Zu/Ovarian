@@ -1,0 +1,143 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(readr)
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(immunarch)
+library(data.table)
+```
+
+Load subsampled data
+```{r}
+# this object was created in the immunarch_analysis script
+sub <- readRDS(file="sub.Rdata")
+```
+
+# Create dataframe and perform feature filtering
+
+generate dataframe: features x observations. 
+proportions of public clonotype sharing
+```{r}
+public_prop <- pubRep(sub, .quant = "prop", .verbose = F, .col = "aa")
+```
+
+```{r}
+pub_prop_df = as.data.frame(public_prop)
+pub_prop_df[is.na(pub_prop_df)] = 0
+pub_prop_df_wos <- subset(pub_prop_df, select = -c(Samples) )
+```
+
+transpose dataframe: observations x features
+```{r}
+merged <- pub_prop_df_wos
+merged_t <- setNames(data.frame(t(merged[,-1])), merged[,1])
+```
+
+turn data into matrix
+```{r}
+data_m <- data.matrix(merged_t)
+```
+
+# Method 1: 600 most shared features
+select top 600 features
+1. Count how many non zero cells in each column. (How many times does each feature appear?)
+```{r}
+samples_count <- colSums(data_m != 0)
+```
+
+2. indices of the sorted vector from high to low and keep top 600.
+```{r}
+feature_selection <- order(samples_count, decreasing = T)[1:600]
+```
+
+3. select those indices from data table.
+```{r}
+data_fs <- merged_t[,feature_selection]
+```
+
+export to csv
+```{r}
+write.csv(data_fs,"./data_600_ab.csv", row.names = T)
+```
+
+
+# Method 2: top features from databases
+
+Database: VDJdb
+```{r}
+file <- "./SearchTable.tsv"
+vdjdb <- read_tsv(file)
+
+vdj_2 <- vdjdb[,-c(1,13,14,15,16)]
+
+vdj_uniq <- unique(vdj_2)
+```
+
+```{r}
+top_uniq <- sort(table(vdj_uniq$CDR3), decreasing = T)[1:10]
+top_uniq
+```
+
+Database: McPAS
+```{r}
+path <- "./mc.10.9.22.xlsx"
+mcpas <- read_excel(path)
+```
+
+```{r}
+cdr3_mcpas <- sort(c(table(mcpas$CDR3.alpha.aa), table(mcpas$CDR3.beta.aa)), decreasing = T)[-c(1,2)]
+top_mcpas <- cdr3_mcpas[1:10]
+top_mcpas
+```
+
+Database: Trust4 TCGA
+```{r}
+tcga_file <- "./trust4_tcga_deidentified_report.tsv"
+tcga_trust4 <- read_tsv(tcga_file, col_names = c("sample", "chain", "cdr3", "subchain", "count"))
+
+# subset tcr data
+trust_tcr <- subset(tcga_trust4, chain %in% c("TRA", "TRB"))
+```
+
+```{r}
+top_tcga <- sort(table(trust_tcr$cdr3), decreasing = T)[2:11]
+top_tcga
+```
+
+```{r}
+# overlapping TCRs from all 3 sets
+Reduce(intersect, list(names(top_uniq), names(top_mcpas), names(top_tcga)))
+```
+
+concatenate all tcrs from vdjdb, mcpas and tcga
+```{r}
+tcrs <- c(names(top_uniq), # vdjdb top 10
+          names(top_mcpas), # mcpas top 10 
+          names(top_tcga)) # tcga top 10
+```
+
+```{r}
+# from 30 down to 25 bc of overlap between databases.
+uniq_tcrs <- unique(tcrs)
+uniq_tcrs
+```
+
+```{r}
+# check which of the 25 features are present in our dataset
+colnames <- colnames(merged_t)
+intersection <- intersect(uniq_tcrs, colnames) # only 16 of 25!
+```
+
+select features from data table.
+```{r}
+data_fs <- merged_t[,intersection]
+```
+
+```{r}
+write.csv(data_fs,"./data_16_ab.csv", row.names = T)
+```
+
