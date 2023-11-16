@@ -52,5 +52,5 @@ The analysis includes data preprocessing, feature filtering, and machine learnin
 ## Data Availability
 
 - The raw data is available on Zenodo.
-- Data resulting from the second feature filtering method is available in the `data_16_ab.csv` file.
+- Data resulting from the second feature filtering method is available in the `data_16_ab.csv` file. All analysis on these data can be reproduced with `ML_atom_SFM_16f.ipynb`.
 
