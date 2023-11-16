@@ -33,7 +33,7 @@ The analysis includes data preprocessing, feature filtering, and machine learnin
 ## Machine Learning
 
 - **ML_atom_SFM_600f.ipynb** and **ML_atom_SFM_16f.ipynb**
-  - These Jupyter Notebooks contains Python scripts for machine learning.
+  - These Jupyter Notebooks contain Python scripts for machine learning.
   - The data resulting from `feature_filtering.Rmd` is processed through these notebooks.
   - Machine learning algorithms are applied for classification using the `atom` package.
 
@@ -52,5 +52,5 @@ The analysis includes data preprocessing, feature filtering, and machine learnin
 ## Data Availability
 
 - The raw data is available on Zenodo.
-- Data resulting from the second feature filtering method is available in the `data_16_ab.csv` file. All analysis on these data can be reproduced with `ML_atom_SFM_16f.ipynb`.
+- Data resulting from the second feature filtering method in `feature_filtering.Rmd` is available in the `data_16_ab.csv` file. All analysis on these data can be reproduced with `ML_atom_SFM_16f.ipynb`.
 
