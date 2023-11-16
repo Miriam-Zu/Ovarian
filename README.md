@@ -32,9 +32,9 @@ The analysis includes data preprocessing, feature filtering, and machine learnin
 
 ## Machine Learning
 
-- **ML_atom_SFM.ipynb:**
-  - This Jupyter Notebook contains a Python script for machine learning.
-  - The data resulting from `feature_filtering.Rmd` is processed through this notebook.
+- **ML_atom_SFM_600f.ipynb** and **ML_atom_SFM_16f.ipynb**
+  - These Jupyter Notebooks contains Python scripts for machine learning.
+  - The data resulting from `feature_filtering.Rmd` is processed through these notebooks.
   - Machine learning algorithms are applied for classification using the `atom` package.
 
 ## Usage
@@ -46,8 +46,8 @@ The analysis includes data preprocessing, feature filtering, and machine learnin
    - NumPy: 1.21.2
    - Pandas: 1.4.1
    - Scikit-learn: 1.0.2
-   - atom-ml 4.12.0
-- To reproduce the environment, `conda env create -f environment.yml`.
+   - atom-ml: 4.12.0
+- To reproduce the Python environment, `conda env create -f environment.yml`.
 
 ## Data Availability
 
