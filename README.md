@@ -41,6 +41,13 @@ The analysis includes data preprocessing, feature filtering, and machine learnin
 
 - The analysis can be reproduced by following the steps outlined in each analysis script.
 - Ensure that the required dependencies (such as R packages and Python libraries) are installed.
+- The project was developed and tested with the following package versions:
+   - Python: 3.8.13
+   - NumPy: 1.21.2
+   - Pandas: 1.4.1
+   - Scikit-learn: 1.0.2
+   - atom-ml 4.12.0
+- To reproduce the environment, `conda env create -f environment.yml`.
 
 ## Data Availability
 
