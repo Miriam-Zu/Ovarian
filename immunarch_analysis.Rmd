@@ -28,10 +28,16 @@ rownames(blood_order) = c()
 head(blood_order)
 ```
 
-# Subsample
-1. Omit 21_H, 49_H
 ```{r}
-immdata$data[which(names(immdata$data) %in% c("21_A_B_H", "49_A_B_H"))] <- NULL
+# get Sample names of samples with Clones < 24k
+small_clone_samples <- blood_order$Sample[blood_order$Clones < 24000]
+small_clone_samples
+```
+
+# Subsample
+1. Omit small samples (21_H, 49_H)
+```{r}
+immdata$data[which(names(immdata$data) %in% small_clone_samples)] <- NULL
 ```
 
 2. subsample
