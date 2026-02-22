@@ -374,9 +374,9 @@ var.equal <- p.var >= 0.05
 
 # p-val < 0.05 --> significant difference
 # else no sig dif
-t.test(gini_y_h, gini_y_oc, var.equal = var.equal)
+t.test(trued_y_h, trued_y_oc, var.equal = var.equal)
 
-# p-value = 0.137, no significant difference
+# p-value = 0.08, no significant difference
 ```
 
 
