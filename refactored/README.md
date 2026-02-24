@@ -51,7 +51,7 @@ python predict.py \
 | `ML_atom_SFS_16f_refactored.py` | 16-feature pipeline: SFS(16→4), LDA model |
 | `run_pipeline.py` | Pipeline orchestrator: runs all 4 stages in order with logging and skip logic |
 | `predict.py` | Inference script: predict OC vs Healthy for a new patient sample |
-| `requirements.yml` | Pinned Python dependencies |
+| `environment.yml` | Pinned Python dependencies |
 | `renv.lock` | Pinned R dependencies |
 
 ---
