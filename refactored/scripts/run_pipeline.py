@@ -7,8 +7,8 @@ Runs all stages in dependency order, skipping stages whose outputs
 already exist (unless --force is passed).
 
 Pipeline stages:
-    1. immunarch_analysis.R   — load raw TCR data, subsample, EDA → sub.Rdata
-    2. feature_filtering.R    — engineer features, export CSVs
+    1. run_eda.R   — load raw TCR data, subsample, EDA → sub.Rdata
+    2. run_feature_filtering.R    — engineer features, export CSVs
     3. ML_atom_SFM_600f       — 600-feature SFM+SFS ML pipeline
     4. ML_atom_SFS_16f        — 16-feature database-derived ML pipeline
 
@@ -31,7 +31,6 @@ Usage:
 
 import argparse
 import logging
-import os
 import subprocess
 import sys
 import time
@@ -43,11 +42,17 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 CONFIG = {
-    # Root directory of the project
-    "project_dir": Path(__file__).parent.resolve(),
+    # Root directory of the project: refactored/
+    "project_dir": Path(__file__).parent.parent.resolve(),
 
     # Raw TCR data directory (input to stage 1)
-    "raw_data_dir": "/path/to/processed/data/",
+    "raw_data_dir": "/path/to/A_B/folder/",
+
+    # Database directory (input to stage 2)
+    "db_dir": "/path/to/db/folder/",
+
+    # Feature filtering method for stage 2: "1", "2", or "both"
+    "feature_filtering_method": "both", 
 
     # Where intermediate and output files land
     "output_dir": Path(__file__).parent / "outputs",
@@ -56,8 +61,8 @@ CONFIG = {
     "rscript": "Rscript",
 
     # R scripts
-    "r_analysis_script":  "immunarch_analysis.R",
-    "r_filtering_script": "feature_filtering.R",
+    "r_analysis_script":  "run_eda.R",
+    "r_filtering_script": "run_feature_filtering.R",
 
     # Python scripts (refactored notebooks exported as .py)
     "ml_600_script": "ML_atom_SFM_600f_refactored.py",
@@ -65,8 +70,8 @@ CONFIG = {
 
     # Expected output files — used to determine if a stage can be skipped
     "stage_outputs": {
-        1: ["sub.Rdata"],
-        2: ["data_600_ab.csv", "data_16_ab.csv"],
+        1: ["eda/eda.done"],
+        2: ["features/feature_filtering.done"],
         3: ["atom_sfm_600"],
         4: ["atom_sfsLDA-4_16f"],
     },
@@ -149,7 +154,7 @@ def run_command(cmd: list, stage_name: str, dry_run: bool = False) -> None:
 # Pipeline stages
 # ---------------------------------------------------------------------------
 
-def stage_1_immunarch(dry_run: bool = False) -> None:
+def stage_1_eda(dry_run: bool = False) -> None:
     """
     Stage 1: Load raw TCR repertoire data, subsample to 24,840 clones,
     run exploratory analysis (clonality, diversity, overlap).
@@ -157,8 +162,8 @@ def stage_1_immunarch(dry_run: bool = False) -> None:
     """
     script = CONFIG["project_dir"] / CONFIG["r_analysis_script"]
     run_command(
-        [CONFIG["rscript"], str(script), CONFIG["raw_data_dir"]],
-        stage_name="immunarch_analysis",
+        [CONFIG["rscript"], str(script), CONFIG["raw_data_dir"], str(CONFIG["output_dir"] / "eda")],
+        stage_name="run_eda",
         dry_run=dry_run,
     )
 
@@ -171,8 +176,8 @@ def stage_2_feature_filtering(dry_run: bool = False) -> None:
     """
     script = CONFIG["project_dir"] / CONFIG["r_filtering_script"]
     run_command(
-        [CONFIG["rscript"], str(script)],
-        stage_name="feature_filtering",
+        [CONFIG["rscript"], str(script), str(CONFIG["output_dir"] / "eda"), str(CONFIG["output_dir"] / "features"), CONFIG["db_dir"], CONFIG["feature_filtering_method"]],
+        stage_name="run_feature_filtering",
         dry_run=dry_run,
     )
 
@@ -210,8 +215,8 @@ def stage_4_ml_16(dry_run: bool = False) -> None:
 # ---------------------------------------------------------------------------
 
 STAGES = {
-    1: {"name": "immunarch_analysis",  "fn": stage_1_immunarch},
-    2: {"name": "feature_filtering",   "fn": stage_2_feature_filtering},
+    1: {"name": "run_eda",  "fn": stage_1_eda},
+    2: {"name": "run_feature_filtering",   "fn": stage_2_feature_filtering},
     3: {"name": "ML_SFM_600f",         "fn": stage_3_ml_600},
     4: {"name": "ML_SFS_16f",          "fn": stage_4_ml_16},
 }
