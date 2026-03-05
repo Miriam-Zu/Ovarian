@@ -12,7 +12,7 @@ This rewrite was done after publication as a software engineering exercise: taki
 
 The original `immunarch_analysis.Rmd` and `feature_filtering.Rmd` were large notebooks mixing data loading, transformation, plotting, statistics, and feature engineering in a linear structure.
 
-The R code is now split into four reusable modules under `R/`, each with a single responsibility:
+The R code is now split into five reusable modules under `R/`, each with a single responsibility:
 
 - `R/packages.R` — loading R packages
 - `R/data_processing.R` — loading, subsampling, and preparing TCR repertoire data
