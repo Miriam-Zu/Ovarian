@@ -14,8 +14,9 @@ The original `immunarch_analysis.Rmd` and `feature_filtering.Rmd` were large not
 
 The R code is now split into four reusable modules under `R/`, each with a single responsibility:
 
+- `R/packages.R` — loading R packages
 - `R/data_processing.R` — loading, subsampling, and preparing TCR repertoire data
-- `R/plots.R` — all visualisation functions (clonality, diversity, overlap)
+- `R/plots.R` — all visualisation functions (clonality, diversity, top, rare, overlap)
 - `R/statistics.R` — statistical tests (t-tests, summaries)
 - `R/feature_filtering.R` — feature matrix construction and both filtering methods
 
