@@ -1,11 +1,3 @@
-library(ggplot2)
-library(immunarch)
-library(dplyr)
-library(stringr)
-library(forcats)
-library(reshape2)
-library(purrr)
-library(plotly)
 
 plot_unique <- function(data_subset, title_text, show_x_text = FALSE) {
 
@@ -28,6 +20,39 @@ plot_unique <- function(data_subset, title_text, show_x_text = FALSE) {
   p <- p + axis_theme + theme(panel.grid = element_blank())
 
   list(plot = p, values = uniq_df$Volume)
+}
+
+plot_diversity <- function(data_subset, method, title_text, y_label, show_x_text = FALSE) {
+
+  div <- repDiversity(data_subset, .method = method, .verbose = FALSE)
+  # if method == "gini", we want to turn object to df, 
+  # and rename columns to "Sample" and "Value"
+  if (method == "gini") {
+    div <- data.frame(div)
+    div$Sample <- rownames(div)
+    div$Value <- div$div
+    div$div <- NULL
+  }
+  div$Num <- as.numeric(stringr::str_extract(div$Sample, "^[0-9]+"))
+  div$Patient_ID <- forcats::fct_reorder(div$Sample, div$Num)
+
+  p <- ggplot(div, aes(Patient_ID, Value)) +
+    geom_col() +
+    theme_bw() +
+    labs(title = title_text,
+         x = "Sample",
+         y = y_label) +
+    theme(legend.position = "none")
+
+  axis_theme <- if (show_x_text) {
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+    } else {
+      theme(axis.text.x = element_blank())
+    }
+
+  p <- p + axis_theme + theme(panel.grid = element_blank())
+
+  list(plot = p, values = div$Value)
 }
 
 plot_top <- function(data_subset, title_text, show_x_text = FALSE) {
@@ -97,39 +122,6 @@ axis_theme <- if (show_x_text) {
   p <- p + axis_theme + theme(panel.grid = element_blank())
 
   list(plot = p, values = rare_n1[["1"]])
-}
-
-plot_diversity <- function(data_subset, method, title_text, y_label, show_x_text = FALSE) {
-
-  div <- repDiversity(data_subset, .method = method, .verbose = FALSE)
-  # if method == "gini", we want to turn object to df, 
-  # and rename columns to "Sample" and "Value"
-  if (method == "gini") {
-    div <- data.frame(div)
-    div$Sample <- rownames(div)
-    div$Value <- div$gini_h
-    div$gini_h <- NULL
-  } 
-  div$Num <- as.numeric(stringr::str_extract(div$Sample, "^[0-9]+"))
-  div$Patient_ID <- forcats::fct_reorder(div$Sample, div$Num)
-
-  p <- ggplot(div, aes(Patient_ID, Value)) +
-    geom_col() +
-    theme_bw() +
-    labs(title = title_text,
-         x = "Sample",
-         y = y_label) +
-    theme(legend.position = "none")
-
-  axis_theme <- if (show_x_text) {
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-    } else {
-      theme(axis.text.x = element_blank())
-    }
-
-  p <- p + axis_theme + theme(panel.grid = element_blank())
-
-  list(plot = p, values = div$Value)
 }
 
 plot_overlap <- function(sub) {

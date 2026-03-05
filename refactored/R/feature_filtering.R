@@ -1,8 +1,3 @@
-library(immunarch)
-library(data.table)
-library(dplyr)
-library(readr)
-library(readxl)
 
 build_feature_matrix <- function(sub) {
   message("[feature_filtering] Building public clonotype proportion matrix...")

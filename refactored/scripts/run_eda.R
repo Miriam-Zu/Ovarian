@@ -1,10 +1,10 @@
-library(ggplot2)
 
 # source("R/data_processing.R")
 # source("R/plots.R")
 # source("R/statistics.R")
 
 script_dir <- dirname(normalizePath(sys.frames()[[1]]$ofile, mustWork = FALSE))
+source(file.path(script_dir, "../R/packages.R"))
 source(file.path(script_dir, "../R/data_processing.R"))
 source(file.path(script_dir, "../R/plots.R"))
 source(file.path(script_dir, "../R/statistics.R"))
@@ -92,6 +92,32 @@ ggsave(file.path(output_dir, "inv_simp_oc.png"), inv_oc$plot)
 
 stat_results[[length(stat_results)+1]] <-
   run_t_test(inv_h$values, inv_oc$values, "inverse_simpson")
+
+# -------------------------
+# TOP CLONOTYPES
+# -------------------------
+message("[EDA] performing EDA for top clonotypes...")
+top_h <- plot_top(sub_h, "Top clonotypes HD", show_x_text = FALSE)
+top_oc <- plot_top(sub_oc, "Top clonotypes OC", show_x_text = FALSE)
+
+ggsave(file.path(output_dir, "top_hd.png"), top_h$plot)
+ggsave(file.path(output_dir, "top_oc.png"), top_oc$plot)
+
+stat_results[[length(stat_results)+1]] <-
+  run_t_test(top_h$values, top_oc$values, "top_clonotypes")
+
+# -------------------------
+# RARE CLONOTYPES
+# -------------------------
+message("[EDA] performing EDA for rare clonotypes...")
+rare_h <- plot_rare(sub_h, "Rare clonotypes HD", show_x_text = FALSE)
+rare_oc <- plot_rare(sub_oc, "Rare clonotypes OC", show_x_text = FALSE)
+
+ggsave(file.path(output_dir, "rare_hd.png"), rare_h$plot)
+ggsave(file.path(output_dir, "rare_oc.png"), rare_oc$plot)
+
+stat_results[[length(stat_results)+1]] <-
+  run_t_test(rare_h$values, rare_oc$values, "rare_clonotypes")
 
 # -------------------------
 # SAVE ALL STATISTICS

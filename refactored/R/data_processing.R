@@ -1,8 +1,4 @@
 
-library("immunarch")
-library("dplyr")
-
-
 load_and_prepare_data <- function(input_path, min_clones = 24000, seed = 42) {
   immdata <- repLoad(input_path)
 
@@ -20,7 +16,7 @@ load_and_prepare_data <- function(input_path, min_clones = 24000, seed = 42) {
   immdata$data[which(names(immdata$data) %in% small_clone_samples)] <- NULL
   # 2. subsample
   set.seed(seed)
-  message("[data_processing] Subsampling with seed: ", seed, "to ", min(remaining_clones), " clones per sample.")
+  message("[data_processing] Subsampling with seed: ", seed, " to ", min(remaining_clones), " clones per sample.")
   sub <- repSample(immdata$data, .method = "downsample")
   list(sub = sub,
        sub_h = sub[grepl("H", names(sub))],
