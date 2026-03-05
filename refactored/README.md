@@ -51,10 +51,10 @@ python scripts/run_pipeline.py                # run all stages, skip completed
 python scripts/run_pipeline.py --from-stage 3 # re-run ML stages only
 python scripts/run_pipeline.py --force        # force full re-run
 python scripts/run_pipeline.py --dry-run      # preview without executing
-python scripts/run_pipeline.py --only 2         # run a single stage
+python scripts/run_pipeline.py --only 2       # run a single stage
 ```
 
-### 5. Inference script (`predict.py`)
+### 5. Inference script (`scripts/predict.py`)
 
 The original pipeline did not include a dedicated way to generate predictions for new patients. The `predict.py` script completes the end-to-end workflow: given a new TCR repertoire, it applies the same preprocessing transformations, aligns features to the training schema, loads the trained model, and produces both a probability score and a classification.
 
