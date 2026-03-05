@@ -83,6 +83,7 @@ refactored/
 │   └── predict.py                     # Inference on new patient samples
 │
 ├── R/                                 # R utility modules (sourced by R scripts)
+│   ├── packages.R                     # load_packages()
 │   ├── data_processing.R              # load_and_prepare_data()
 │   ├── plots.R                        # plot_unique(), plot_diversity(), plot_overlap(), etc.
 │   ├── statistics.R                   # run_t_test()
@@ -104,6 +105,8 @@ refactored/
     │   ├── gini_hd.png / gini_oc.png
     │   ├── true_div_hd.png / true_div_oc.png
     │   ├── inv_simp_hd.png / inv_simp_oc.png
+    │   ├── top_hd.png / top_oc.png
+    │   ├── rare_hd.png / rare_oc.png
     │   ├── statistical_tests_summary.csv
     │   ├── overlap_heatmap.html
     │   └── eda.done                   # Sentinel: stage 1 completed successfully
@@ -140,7 +143,7 @@ Before running, edit the `CONFIG` block at the top of `scripts/run_pipeline.py` 
 
 ```python
 CONFIG = {
-    "raw_data_dir": "/path/to/A_B/folder/",   # raw TCR repertoire input
+    "raw_data_dir": "/path/to/A_B/folder/",    # raw TCR repertoire input
     "db_dir":       "data/db/",                # database files for stage 2
     "feature_filtering_method": "both",        # "1", "2", or "both"
     ...
