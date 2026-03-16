@@ -24,4 +24,3 @@ required_packages <- c(
   "readxl"
 )
 
-load_packages(required_packages)

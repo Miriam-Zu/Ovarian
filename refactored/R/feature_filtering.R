@@ -33,7 +33,8 @@ filter_database_features <- function(merged_t, vdjdb_path, mcpas_path, tcga_path
   vdjdb <- read_tsv(vdjdb_path, show_col_types = FALSE)
   vdjdb <- unique(vdjdb[, -c(1, 13, 14, 15, 16)])
   top_vdjdb <- names(sort(table(vdjdb$CDR3), decreasing = TRUE)[1:10])
-
+  message("[feature_filtering] Chose top 10 VDJdb clonotypes: ", paste(top_vdjdb, collapse = ", "))
+  
   # McPAS
   if (!file.exists(mcpas_path)) stop(paste("McPAS file not found:", mcpas_path))
   mcpas <- read_excel(mcpas_path)
@@ -42,6 +43,7 @@ filter_database_features <- function(merged_t, vdjdb_path, mcpas_path, tcga_path
     decreasing = TRUE
   )[-c(1, 2)]
   top_mcpas <- names(cdr3_mcpas[1:10])
+  message("[feature_filtering] Chose top 10 McPAS clonotypes: ", paste(top_mcpas, collapse = ", "))
 
   # TCGA Trust4
   if (!file.exists(tcga_path)) stop(paste("TCGA Trust4 file not found:", tcga_path))
@@ -50,6 +52,7 @@ filter_database_features <- function(merged_t, vdjdb_path, mcpas_path, tcga_path
                    show_col_types = FALSE)
   trust_tcr <- subset(tcga, chain %in% c("TRA", "TRB"))
   top_tcga <- names(sort(table(trust_tcr$cdr3), decreasing = TRUE)[2:11])
+  message("[feature_filtering] Chose top 10 TCGA clonotypes: ", paste(top_tcga, collapse = ", "))
 
   # Intersect across databases for reporting
   overlap <- Reduce(intersect, list(top_vdjdb, top_mcpas, top_tcga))

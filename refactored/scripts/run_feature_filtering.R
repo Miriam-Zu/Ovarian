@@ -1,5 +1,8 @@
-script_dir <- dirname(normalizePath(sys.frames()[[1]]$ofile, mustWork = FALSE))
-source(file.path(script_dir, "../R/feature_filtering.R"))
+library(here)
+here::i_am("scripts/run_feature_filtering.R")
+source(here("R", "packages.R"))
+load_packages(required_packages)
+source(here("R", "feature_filtering.R"))
 
 # Usage:
 # Rscript scripts/run_feature_filtering.R results/eda results/features /path/to/db/folder method

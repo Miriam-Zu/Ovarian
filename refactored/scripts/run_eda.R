@@ -1,13 +1,11 @@
 
-# source("R/data_processing.R")
-# source("R/plots.R")
-# source("R/statistics.R")
-
-script_dir <- dirname(normalizePath(sys.frames()[[1]]$ofile, mustWork = FALSE))
-source(file.path(script_dir, "../R/packages.R"))
-source(file.path(script_dir, "../R/data_processing.R"))
-source(file.path(script_dir, "../R/plots.R"))
-source(file.path(script_dir, "../R/statistics.R"))
+library(here)
+here::i_am("scripts/run_eda.R")
+source(here("R", "packages.R"))
+load_packages(required_packages)
+source(here("R", "data_processing.R"))
+source(here("R", "plots.R"))
+source(here("R", "statistics.R"))
 
 # Usage:
 # Rscript scripts/run_eda.R /path/to/A_B/folder results/eda
